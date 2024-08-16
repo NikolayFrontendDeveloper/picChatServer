@@ -3,13 +3,13 @@ import express from "express";
 import { MongoClient, ObjectId } from "mongodb";
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
-require('dotenv').config();
 
 const dbClient = new MongoClient(config.db);
 const app = express();
-app.use();
+app.use(cors());
 app.use(express.json());
 
+const PORT = process.env.PORT || 3000;
 const users = dbClient.db('social').collection('users');
 
 // Получение всех данных
@@ -820,7 +820,7 @@ app.post('/posts/remove-comment', async (req, res) => {
     }
 });
 
-app.listen(3000, async () => {
+app.listen(PORT, async () => {
     try {
         await dbClient.connect();
         console.log("DB Connected. Server Started!");
