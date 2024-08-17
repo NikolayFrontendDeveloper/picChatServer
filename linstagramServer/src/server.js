@@ -11,6 +11,9 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 const users = dbClient.db('social').collection('users');
+const cloudName = 'da1h0vrzb';
+const apiKey = '333174452715792';
+const apiSecret = 'IkMa2fXAVGpHdCOMmuXuWzF2fPA';
 
 // Получение всех данных
 app.get('/data', async (req, res) => {
@@ -388,6 +391,34 @@ app.post('/delete-post', async (req, res) => {
             ok: false,
             comment: 'incorrect request data'
         });
+    }
+});
+
+// Удаление поста из cloudinary
+app.post('/delete-image', async (req, res) => {
+    const { publicId } = req.body;
+
+    const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64');
+    const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ public_id: publicId })
+        });
+
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
