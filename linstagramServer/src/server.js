@@ -399,17 +399,26 @@ app.post('/delete-post', async (req, res) => {
 
 // Удаление поста из cloudinary
 app.post('/delete-image', async (req, res) => {
-    const { publicId } = req.body;
+    const { publicId, typeFile } = req.body;
 
-    cloudinary.uploader
-        .destroy(publicId, { resource_type: 'image' })
-        .then(result => {
+    if (!publicId || !typeFile) {
+        return res.status(400).json({ ok: false, error: 'Insufficient data for deletion' });
+    }
+
+    try {
+        const result = await cloudinary.uploader.destroy(publicId, { resource_type: typeFile });
+
+        if (result.result === 'ok') {
             console.log(result);
-            res.send({
-                ok: true,
-                result
-            });
-        })
+            res.status(200).json({ ok: true });
+        } else {
+            console.log(result);
+            res.status(400).json({ ok: false, error: 'Failed to delete resource' });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ ok: false, error: 'Server error while deleting resource' });
+    }
 });
 
 // Получение всех постов
