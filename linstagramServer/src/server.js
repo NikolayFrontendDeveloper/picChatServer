@@ -137,6 +137,91 @@ app.post('/get-user', async (req, res) => {
     }
 });
 
+// Добавление поста в избранное
+app.post('/add-favorite', async (req, res) => {
+    const data = req.body;
+    if (data.token && data.postToken && data.imageUrl && Object.keys(data).length === 3) {
+        try {
+            const user = await users.findOne({ _id: new ObjectId(data.token) });
+            if (!user) {
+                res.send({
+                    ok: false,
+                    comment: 'user not found'
+                });
+                return;
+            }
+            const favoritePost = {
+                postToken: data.postToken,
+                imageUrl: data.imageUrl
+            }
+            
+            await users.updateOne(
+                { _id: new ObjectId(data.token) },
+                { $push: { favoritePosts: favoritePost } }
+            );
+            res.send({
+                ok: true,
+            });
+        } catch (error) {
+            console.error('Error during pushing favorite Post:', error);
+            res.send({
+                ok: false,
+                comment: 'internal server error during creating post',
+                error: error.message
+            });
+        }
+    } else {
+        res.send({
+            ok: false,
+            comment: 'incorrect request data'
+        });
+    }
+});
+
+// Удаление поста из избранного
+app.post('/delete-favorite', async (req, res) => {
+    const data = req.body;
+    
+    if (data.token && data.postToken && data.imageUrl && Object.keys(data).length === 3) {
+        try {
+            const user = await users.findOne({ _id: new ObjectId(data.token) });
+            
+            if (!user) {
+                res.send({
+                    ok: false,
+                    comment: 'user not found'
+                });
+                return;
+            }
+            
+            const favoritePosts = user.favoritePosts?.filter(post => {
+                return post.postToken !== data.postToken || post.imageUrl !== data.imageUrl;
+            });
+
+            await users.updateOne(
+                { _id: new ObjectId(data.token) },
+                { $set: { favoritePosts: favoritePosts || [] } }
+            );
+            
+            res.send({
+                ok: true,
+            });
+        } catch (error) {
+            console.error('Error during deleting favorite Post:', error);
+            res.send({
+                ok: false,
+                comment: 'internal server error during deleting post from favorite',
+                error: error.message
+            });
+        }
+    } else {
+        res.send({
+            ok: false,
+            comment: 'incorrect request data'
+        });
+    }
+});
+
 // Добавление подписки на аккаунт
 app.post('/subscribe', async (req, res) => {
     const data = req.body;
