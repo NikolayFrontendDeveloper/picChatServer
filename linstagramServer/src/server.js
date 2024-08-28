@@ -152,7 +152,8 @@ app.post('/add-favorite', async (req, res) => {
             }
             const favoritePost = {
                 postToken: data.postToken,
-                imageUrl: data.imageUrl
+                imageUrl: data.imageUrl,
+                time: Date.now()
             }
             
             await users.updateOne(
