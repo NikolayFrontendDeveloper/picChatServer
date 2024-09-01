@@ -4,6 +4,8 @@ import { MongoClient, ObjectId } from "mongodb";
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
 import { v2 as cloudinary } from 'cloudinary';
+import { Server } from 'socket.io';
+import http from 'http';
 
 const dbClient = new MongoClient(config.db);
 const app = express();
@@ -12,11 +14,33 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
 const users = dbClient.db('social').collection('users');
+const messages = dbClient.db('social').collection('messages');
+
 cloudinary.config({
     cloud_name: 'da1h0vrzb',
     api_key: '333174452715792',
     api_secret: 'IkMa2fXAVGpHdCOMmuXuWzF2fPA'
 });
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "http://localhost:5173",
+        methods: ["GET", "POST"],
+    }
+});
+
+io.on("connection", (socket) => {
+    console.log(`User Connected: ${socket.id}`);
+
+    socket.on("join_room", (data) => {
+        socket.join(data);
+        console.log(`User with ID: ${socket.id}} joined room: ${data}`)
+    })
+
+    socket.on("disconnect", () => {
+        console.log("User Disconnected", socket.id);
+    })
+})
 
 // Получение всех данных
 app.get('/data', async (req, res) => {
@@ -29,6 +53,57 @@ app.get('/data', async (req, res) => {
             ok: false,
             comment: 'internal server error during fetching data',
             error: error.message
+        });
+    }
+});
+
+// Получение всех чатов
+app.get('/get-messages', async (req, res) => {
+    try {
+        const data = await messages.find().toArray();
+        res.send(data);
+    } catch (error) {
+        console.error('Error during fetching chats:', error);
+        res.send({
+            ok: false,
+            comment: 'internal server error during fetching chats',
+            error: error.message
+        });
+    }
+});
+
+// Создание чата
+app.post('/messages/add-chat', async (req, res) => {
+    const data = req.body;
+    if (data.token && data.userToken && Object.keys(data).length === 2) {
+        try {
+            const result = await messages.insertOne({
+                members: [data.token, data.userToken]
+            });
+            res.send({
+                chatId: result.insertedId.toHexString(),
+                ok: true
+            });
+            await users.updateOne(
+                { _id: new ObjectId(data.token) },
+                { $push: { messages: result.insertedId.toHexString() } }
+            );
+            await users.updateOne(
+                { _id: new ObjectId(data.userToken) },
+                { $push: { messages: result.insertedId.toHexString() } }
+            );
+        } catch (error) {
+            console.error('Error during creating chat:', error);
+            res.send({
+                ok: false,
+                comment: 'internal server error during creating chat',
+                error: error.message
+            });
+        }
+    } else {
+        res.send({
+            ok: false,
+            comment: 'incorrect request data'
         });
     }
 });
@@ -935,11 +1010,10 @@ app.post('/posts/remove-comment', async (req, res) => {
         });
     }
 });
-
-app.listen(PORT, async () => {
+server.listen(PORT, async () => {
     try {
         await dbClient.connect();
-        console.log("DB Connected. Server Started!");
+        console.log(`Server running on port ${PORT}`);
     } catch (error) {
         console.error("Failed to connect to DB", error);
     }
