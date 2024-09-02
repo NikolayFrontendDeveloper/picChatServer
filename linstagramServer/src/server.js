@@ -87,13 +87,25 @@ app.post('/messages/add-chat', async (req, res) => {
             });
             await users.updateOne(
                 { _id: new ObjectId(data.token) },
-                { $set: { personalChat: true } },
-                { $push: { messages: result.insertedId.toHexString() } }
+                { 
+                    $push: {
+                        'chats': {
+                            personalChat: true,
+                            chatId: result.insertedId.toHexString()
+                        }
+                    }
+                }
             );
             await users.updateOne(
                 { _id: new ObjectId(data.userToken) },
-                { $set: { personalChat: true } },
-                { $push: { messages: result.insertedId.toHexString() } }
+                { 
+                    $push: {
+                        'chats': {
+                            personalChat: true,
+                            chatId: result.insertedId.toHexString()
+                        }
+                    }
+                }
             );
         } catch (error) {
             console.error('Error during creating chat:', error);
