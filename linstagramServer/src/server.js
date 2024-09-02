@@ -78,6 +78,7 @@ app.post('/messages/add-chat', async (req, res) => {
     if (data.token && data.userToken && Object.keys(data).length === 2) {
         try {
             const result = await messages.insertOne({
+                personalChat: true,
                 members: [data.token, data.userToken]
             });
             res.send({
@@ -86,10 +87,12 @@ app.post('/messages/add-chat', async (req, res) => {
             });
             await users.updateOne(
                 { _id: new ObjectId(data.token) },
+                { $set: { personalChat: true } },
                 { $push: { messages: result.insertedId.toHexString() } }
             );
             await users.updateOne(
                 { _id: new ObjectId(data.userToken) },
+                { $set: { personalChat: true } },
                 { $push: { messages: result.insertedId.toHexString() } }
             );
         } catch (error) {
