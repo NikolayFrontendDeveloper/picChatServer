@@ -123,6 +123,36 @@ app.post('/messages/add-chat', async (req, res) => {
     }
 });
 
+// Добавление сообщения
+app.post('/messages/add-message', async (req, res) => {
+    const data = req.body;
+    if (data.token && data.text && data.roomId && Object.keys(data).length === 3) {
+        await messages.updateOne(
+            { _id: new ObjectId(data.roomId) },
+            { 
+                $push: {
+                    'messages': {
+                        sender: data.token,
+                        text: data.text,
+                        time: Date.now()
+                    }
+                }
+            }
+        );
+        res.send({
+            sender: data.token,
+            text: data.text,
+            time: Date.now(),
+            ok: true
+        });
+    } else {
+        res.send({
+            ok: false,
+            comment: 'incorrect request data'
+        });
+    }
+});
+
 // Регистрация пользователя
 app.post('/auth/signup', async (req, res) => {
     const data = req.body;
